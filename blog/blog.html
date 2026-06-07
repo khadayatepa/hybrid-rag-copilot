@@ -49,6 +49,30 @@ WHERE  r.request_id = :rid;</code></pre>
     <figcaption style="font-size:14px;color:#6b7280;font-style:italic;margin-top:8px;">"Changed my mind", 50 days after delivery → DENY, citing the 30-day window. Every claim traces to a real row.</figcaption>
   </figure>
 
+  <h2 style="color:#4f46e5;margin-top:34px;">Build it — step by step</h2>
+  <ol>
+    <li><strong>Expose the database over MCP.</strong> Start the SQLcl MCP server and save a connection:
+      <pre style="background:#1e1b34;color:#e9e7fb;padding:12px;border-radius:8px;overflow:auto;font-size:13px;"><code>sql /nolog
+SQL&gt; conn -save DEBATE -savepwd debate@your_tns_alias
+sql -mcp        # agents now reach the DB through this</code></pre></li>
+    <li><strong>Create the tables</strong> — a <code style="background:#eef2ff;padding:1px 6px;border-radius:4px;">policies</code> table with a <code style="background:#eef2ff;padding:1px 6px;border-radius:4px;">VECTOR</code> column, plus <code style="background:#eef2ff;padding:1px 6px;border-radius:4px;">orders</code> and <code style="background:#eef2ff;padding:1px 6px;border-radius:4px;">refund_requests</code>:
+      <pre style="background:#1e1b34;color:#e9e7fb;padding:12px;border-radius:8px;overflow:auto;font-size:13px;"><code>CREATE TABLE policies (
+  policy_id   NUMBER PRIMARY KEY,
+  title       VARCHAR2(120),
+  clause_text VARCHAR2(2000),
+  embedding   VECTOR(1536, FLOAT32)
+);</code></pre></li>
+    <li><strong>Embed the policy clauses</strong> and store the vectors in the <code style="background:#eef2ff;padding:1px 6px;border-radius:4px;">embedding</code> column (a vector index keeps search fast).</li>
+    <li><strong>Run the hybrid query</strong> (shown above) — order facts + nearest policy clauses in one statement.</li>
+    <li><strong>Let the copilot decide</strong> from that single block of evidence: APPROVE / DENY / ESCALATE.</li>
+  </ol>
+  <p>End to end with the repo:</p>
+  <pre style="background:#1e1b34;color:#e9e7fb;padding:14px;border-radius:10px;overflow:auto;font-size:13.5px;"><code>pip install -r requirements.txt
+copy .env.example .env          # set OPENAI_API_KEY + ORACLE_MCP_CONNECTION
+python src/seed.py              # policies (+embeddings), orders, refund_requests
+python src/copilot.py           # assess REQUEST_ID -> APPROVE / DENY / ESCALATE
+streamlit run src/dashboard.py  # view decisions</code></pre>
+
   <h2 style="color:#4f46e5;margin-top:34px;">Why this matters</h2>
   <ul>
     <li><strong>One source of truth.</strong> No syncing a separate vector store with your transactional data — they're the same database, the same transaction, the same backup.</li>

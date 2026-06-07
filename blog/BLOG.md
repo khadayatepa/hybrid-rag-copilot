@@ -47,6 +47,37 @@ With both halves in hand, the copilot reasons strictly from the retrieved clause
 ![Copilot decision: DENY — the request was made 50 days after delivery, exceeding the 30-day return window](decision-screenshot.png)
 *"Changed my mind", 50 days after delivery → DENY, citing the 30-day window. Every claim traces to a real row.*
 
+## Build it — step by step
+
+1. **Expose the database over MCP.** Start the SQLcl MCP server and save a connection:
+   ```
+   sql /nolog
+   SQL> conn -save DEBATE -savepwd debate@your_tns_alias
+   sql -mcp        # agents now reach the DB through this
+   ```
+2. **Create the tables** — a `policies` table with a `VECTOR` column, plus `orders` and `refund_requests`:
+   ```sql
+   CREATE TABLE policies (
+     policy_id   NUMBER PRIMARY KEY,
+     title       VARCHAR2(120),
+     clause_text VARCHAR2(2000),
+     embedding   VECTOR(1536, FLOAT32)
+   );
+   ```
+3. **Embed the policy clauses** and store the vectors in the `embedding` column (a vector index keeps search fast).
+4. **Run the hybrid query** (shown above) — order facts + nearest policy clauses in one statement.
+5. **Let the copilot decide** from that single block of evidence: APPROVE / DENY / ESCALATE.
+
+End to end with the repo:
+
+```
+pip install -r requirements.txt
+copy .env.example .env          # set OPENAI_API_KEY + ORACLE_MCP_CONNECTION
+python src/seed.py              # policies (+embeddings), orders, refund_requests
+python src/copilot.py           # assess REQUEST_ID -> APPROVE / DENY / ESCALATE
+streamlit run src/dashboard.py  # view decisions
+```
+
 ## Why this matters
 
 - **One source of truth.** No syncing a separate vector store with your transactional data — same database, same transaction, same backup.
