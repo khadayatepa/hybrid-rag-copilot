@@ -1,0 +1,69 @@
+<!-- WordPress-ready. Paste into a "Custom HTML" block. Upload the two PNGs in this
+     folder to your Media Library (filenames match). Edit the byline at the bottom.
+     Theme: modern SaaS — light, indigo, sans-serif. -->
+<div class="ace-hybrid-post" style="max-width:840px;margin:0 auto;line-height:1.7;font-size:17px;color:#1f2937;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+  <div style="border-left:5px solid #4f46e5;padding:6px 0 6px 18px;margin-bottom:22px;">
+    <h1 style="font-size:2.05em;line-height:1.25;margin:0;color:#1e1b34;">One Query, Two Worlds: Hybrid RAG on Oracle 26ai</h1>
+    <p style="color:#6b7280;margin:8px 0 0;font-size:1.05em;">Answering a question that needs <em>both</em> your documents and your tables — in a single SQL statement, no bolt-on vector database.</p>
+  </div>
+
+  <p>Most "AI + database" demos keep two stores: a vector database for the unstructured stuff and your real database for the facts — with a layer of glue code stitching them together at query time. Oracle&nbsp;26ai lets me delete that whole layer. Vectors and tables live in <strong>one database</strong>, so a single query can search by <em>meaning</em> and join to <em>facts</em> at the same time.</p>
+  <p>To show it, I built a small <strong>refund-compliance copilot</strong>.</p>
+
+  <h2 style="color:#4f46e5;margin-top:34px;">The problem: a decision that needs both halves</h2>
+  <p>A customer asks for a refund. To answer fairly you need two very different things:</p>
+  <ul>
+    <li>🧠 <strong>Meaning</strong> — which refund <em>policy clause</em> applies to what they said? ("I changed my mind" vs "it arrived broken" land on different rules.) That's a <strong>vector search</strong>.</li>
+    <li>📊 <strong>Facts</strong> — how many days since delivery? was it final sale? That's plain <strong>relational</strong> data.</li>
+  </ul>
+  <p>Get either half wrong and the decision is wrong. The neat part is doing both in one go.</p>
+
+  <h2 style="color:#4f46e5;margin-top:34px;">The trick: one hybrid SQL</h2>
+  <p>The copilot embeds the customer's reason, then runs a single statement that joins the order row to the <em>nearest policy clauses</em> via <code style="background:#eef2ff;padding:1px 6px;border-radius:4px;">VECTOR_DISTANCE</code> inside a <code style="background:#eef2ff;padding:1px 6px;border-radius:4px;">CROSS JOIN LATERAL</code>:</p>
+
+  <figure style="margin:22px 0;text-align:center;">
+    <img src="hybrid-query.png" alt="One SQL joining relational order facts (product, amount, 50 days since delivery) with a vector search over policy clauses (Standard return window, cosine distance 0.577)" style="max-width:100%;height:auto;border-radius:10px;border:1px solid #eee;" />
+    <figcaption style="font-size:14px;color:#6b7280;font-style:italic;margin-top:8px;">Left: the order facts (relational). Right: the policy clause matched by meaning (vector). One statement returns both.</figcaption>
+  </figure>
+
+  <pre style="background:#1e1b34;color:#e9e7fb;padding:16px;border-radius:10px;overflow:auto;font-size:13.5px;"><code>SELECT o.product, o.amount,
+       TRUNC(SYSDATE - o.delivered_date) AS days_since_delivery,
+       p.title, p.clause_text,
+       VECTOR_DISTANCE(p.embedding, :reason_vec, COSINE) AS policy_distance
+FROM   refund_requests r
+JOIN   orders o ON o.order_id = r.order_id
+CROSS JOIN LATERAL (
+   SELECT title, clause_text, embedding
+   FROM   policies
+   ORDER BY VECTOR_DISTANCE(embedding, :reason_vec, COSINE)
+   FETCH FIRST 2 ROWS ONLY
+) p
+WHERE  r.request_id = :rid;</code></pre>
+
+  <h2 style="color:#4f46e5;margin-top:34px;">The decision</h2>
+  <p>With both halves in hand, the copilot reasons strictly from the retrieved clause and the order facts, then commits to a verdict — quoting the clause and the deciding fact:</p>
+
+  <figure style="margin:22px 0;text-align:center;">
+    <img src="decision-screenshot.png" alt="Copilot decision: DENY — the request was made 50 days after delivery, exceeding the 30-day return window" style="max-width:100%;height:auto;border-radius:10px;border:1px solid #eee;" />
+    <figcaption style="font-size:14px;color:#6b7280;font-style:italic;margin-top:8px;">"Changed my mind", 50 days after delivery → DENY, citing the 30-day window. Every claim traces to a real row.</figcaption>
+  </figure>
+
+  <h2 style="color:#4f46e5;margin-top:34px;">Why this matters</h2>
+  <ul>
+    <li><strong>One source of truth.</strong> No syncing a separate vector store with your transactional data — they're the same database, the same transaction, the same backup.</li>
+    <li><strong>Grounded answers.</strong> The model never guesses the policy or the dates; both come straight from SQL, so the decision is explainable and auditable.</li>
+    <li><strong>It's just SQL.</strong> <code style="background:#eef2ff;padding:1px 6px;border-radius:4px;">VECTOR_DISTANCE</code> sits in the same <code style="background:#eef2ff;padding:1px 6px;border-radius:4px;">SELECT</code> as your joins and filters — your existing skills apply.</li>
+  </ul>
+  <p>The agent reaches the database through the <strong>SQLcl MCP Server</strong> (<code style="background:#eef2ff;padding:1px 6px;border-radius:4px;">sql -mcp</code>), so it queries safely with a saved connection and every statement is audited.</p>
+
+  <h2 style="color:#4f46e5;margin-top:34px;">The takeaway</h2>
+  <p>"Hybrid search" usually means running two systems and merging results in your app. On Oracle&nbsp;26ai it means writing one query. For any decision that blends <em>what was said</em> with <em>what is true</em> — refunds, claims, compliance, support — that's a genuinely simpler architecture.</p>
+
+  <div style="background:#f5f5fb;border-radius:10px;padding:16px 20px;margin-top:30px;font-size:16px;">
+    <strong style="color:#4f46e5;">About the author</strong><br>
+    <strong>Prashant Khadayate</strong> is an <strong>Oracle ACE</strong> focused on the Oracle AI Database (26ai), AI Vector Search, and the SQLcl MCP Server. Connect on <a href="https://www.linkedin.com/in/prashant-khadayate-1a8b0b97/" style="color:#4f46e5;">LinkedIn</a> for more hands-on Oracle AI experiments.
+  </div>
+  <p style="font-size:13px;color:#9ca3af;margin-top:14px;">A learning demo — not legal or financial advice.</p>
+
+</div>
