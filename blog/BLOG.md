@@ -59,6 +59,8 @@ The agent reaches the database through the **SQLcl MCP Server** (`sql -mcp`), so
 
 "Hybrid search" usually means running two systems and merging results in your app. On Oracle 26ai it means writing one query. For any decision that blends *what was said* with *what is true* — refunds, claims, compliance, support — that's a genuinely simpler architecture.
 
+📦 **Full code on GitHub:** [github.com/khadayatepa/hybrid-rag-copilot](https://github.com/khadayatepa/hybrid-rag-copilot)
+
 ---
 
 *About the author: **Prashant Khadayate** is an **Oracle ACE** focused on the Oracle AI Database (26ai), AI Vector Search, and the SQLcl MCP Server. Connect on [LinkedIn](https://www.linkedin.com/in/prashant-khadayate-1a8b0b97/) for more hands-on Oracle AI experiments.*
