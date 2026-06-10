@@ -11,7 +11,15 @@
   <p>Most "AI + database" demos keep two stores: a vector database for the unstructured stuff and your real database for the facts — with a layer of glue code stitching them together at query time. Oracle&nbsp;26ai lets me delete that whole layer. Vectors and tables live in <strong>one database</strong>, so a single query can search by <em>meaning</em> and join to <em>facts</em> at the same time.</p>
   <p>To show it, I built a small <strong>refund-compliance copilot</strong>.</p>
 
-  <h2 style="color:#4f46e5;margin-top:34px;">The problem: a decision that needs both halves</h2>
+    <div style="background:#f6f8fa;border:1px solid #e6eaef;border-left:4px solid #4338ca;border-radius:10px;padding:14px 18px;margin:20px 0;font-size:15px;color:#243240;">
+    <div style="font-weight:800;margin-bottom:8px;color:#0f172a;">📋 At a glance</div>
+    <div style="margin:3px 0;"><strong>Tech stack:</strong> Oracle 26ai AI Vector Search + relational JOIN/LATERAL · SQLcl MCP · OpenAI</div>
+    <div style="margin:3px 0;"><strong>Database:</strong> Oracle AI Database 26ai — 23.26.2.2.0 (Autonomous Database)</div>
+    <div style="margin:3px 0;"><strong>Best for:</strong> RAG answers that fuse semantic vector search with live structured tables in a single SQL query.</div>
+    <div style="margin:3px 0;"><strong>Level:</strong> Intermediate</div>
+  </div>
+
+<h2 style="color:#4f46e5;margin-top:34px;">The problem: a decision that needs both halves</h2>
   <p>A customer asks for a refund. To answer fairly you need two very different things:</p>
   <ul>
     <li>🧠 <strong>Meaning</strong> — which refund <em>policy clause</em> applies to what they said? ("I changed my mind" vs "it arrived broken" land on different rules.) That's a <strong>vector search</strong>.</li>

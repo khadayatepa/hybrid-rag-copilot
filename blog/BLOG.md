@@ -4,6 +4,14 @@
 
 ---
 
+**📋 At a glance**
+
+- **Tech stack:** Oracle 26ai AI Vector Search + relational JOIN/LATERAL · SQLcl MCP · OpenAI
+- **Database:** Oracle AI Database 26ai — 23.26.2.2.0 (Autonomous Database)
+- **Best for:** RAG answers that fuse semantic vector search with live structured tables in a single SQL query.
+- **Level:** Intermediate
+
+
 Most "AI + database" demos keep two stores: a vector database for the unstructured stuff and your real database for the facts — with glue code stitching them together at query time. Oracle 26ai lets me delete that whole layer. Vectors and tables live in **one database**, so a single query can search by *meaning* and join to *facts* at the same time.
 
 To show it, I built a small **refund-compliance copilot**.
