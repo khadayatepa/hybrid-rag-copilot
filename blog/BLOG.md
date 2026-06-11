@@ -99,6 +99,35 @@ The agent reaches the database through the **SQLcl MCP Server** (`sql -mcp`), so
 
 "Hybrid search" usually means running two systems and merging results in your app. On Oracle 26ai it means writing one query. For any decision that blends *what was said* with *what is true* — refunds, claims, compliance, support — that's a genuinely simpler architecture.
 
+## 🛠️ Do it yourself — step by step (manual SQL)
+
+Run the hybrid retrieval by hand in SQLcl — semantic vector search and live relational data in one statement.
+
+**1) Create the policy table (vectors) alongside your relational tables**
+
+```sql
+CREATE TABLE policies (
+  policy_id   NUMBER PRIMARY KEY, title VARCHAR2(120),
+  clause_text VARCHAR2(2000), embedding VECTOR(1536, FLOAT32));
+```
+
+**2) One query: match the most relevant policy by meaning AND join live order facts**
+
+```sql
+SELECT o.product, o.amount,
+       TRUNC(SYSDATE - o.delivered_date) AS days_since_delivery,
+       p.title, p.clause_text,
+       VECTOR_DISTANCE(p.embedding, :reason_vec, COSINE) AS policy_distance
+FROM   refund_requests r
+JOIN   orders o ON o.order_id = r.order_id
+CROSS JOIN LATERAL (
+   SELECT title, clause_text, embedding FROM policies
+   ORDER BY VECTOR_DISTANCE(embedding, :reason_vec, COSINE) FETCH FIRST 2 ROWS ONLY) p
+WHERE  r.request_id = :rid;
+```
+:reason_vec is the embedding of the customer's refund reason.
+
+
 📦 **Full code on GitHub:** [github.com/khadayatepa/hybrid-rag-copilot](https://github.com/khadayatepa/hybrid-rag-copilot)
 
 ---

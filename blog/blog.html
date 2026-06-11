@@ -58,7 +58,26 @@ WHERE  r.request_id = :rid;</code></pre>
     <figcaption style="font-size:14px;color:#6b7280;font-style:italic;margin-top:8px;">"Changed my mind", 50 days after delivery → DENY, citing the 30-day window. Every claim traces to a real row.</figcaption>
   </figure>
 
-  <h2 style="color:#4f46e5;margin-top:34px;">Build it — step by step</h2>
+    <h2 style="color:#4338ca;margin-top:32px;">🛠️ Do it yourself — step by step (manual SQL)</h2>
+  <p>Run the hybrid retrieval by hand in SQLcl — semantic vector search and live relational data in one statement.</p>
+  <p><strong>1) Create the policy table (vectors) alongside your relational tables</strong></p>
+  <pre style="background:#0f172a;color:#e2e8f0;padding:13px;border-radius:9px;overflow:auto;font-size:12.5px;"><code>CREATE TABLE policies (
+  policy_id   NUMBER PRIMARY KEY, title VARCHAR2(120),
+  clause_text VARCHAR2(2000), embedding VECTOR(1536, FLOAT32));</code></pre>
+  <p><strong>2) One query: match the most relevant policy by meaning AND join live order facts</strong></p>
+  <pre style="background:#0f172a;color:#e2e8f0;padding:13px;border-radius:9px;overflow:auto;font-size:12.5px;"><code>SELECT o.product, o.amount,
+       TRUNC(SYSDATE - o.delivered_date) AS days_since_delivery,
+       p.title, p.clause_text,
+       VECTOR_DISTANCE(p.embedding, :reason_vec, COSINE) AS policy_distance
+FROM   refund_requests r
+JOIN   orders o ON o.order_id = r.order_id
+CROSS JOIN LATERAL (
+   SELECT title, clause_text, embedding FROM policies
+   ORDER BY VECTOR_DISTANCE(embedding, :reason_vec, COSINE) FETCH FIRST 2 ROWS ONLY) p
+WHERE  r.request_id = :rid;</code></pre>
+  <p style="font-size:15px;color:#475569;"><code>:reason_vec</code> is the embedding of the customer's refund reason.</p>
+
+<h2 style="color:#4f46e5;margin-top:34px;">Build it — step by step</h2>
   <ol>
     <li><strong>Expose the database over MCP.</strong> Start the SQLcl MCP server and save a connection:
       <pre style="background:#1e1b34;color:#e9e7fb;padding:12px;border-radius:8px;overflow:auto;font-size:13px;"><code>sql /nolog
