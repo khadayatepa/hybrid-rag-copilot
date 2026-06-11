@@ -6,6 +6,7 @@
 
 **📋 At a glance**
 
+- **📦 Repository:** [github.com/khadayatepa/hybrid-rag-copilot](https://github.com/khadayatepa/hybrid-rag-copilot)
 - **Tech stack:** Oracle 26ai AI Vector Search + relational JOIN/LATERAL · SQLcl MCP · OpenAI
 - **Database:** Oracle AI Database 26ai — 23.26.2.2.0 (Autonomous Database)
 - **Prerequisites:** SQLcl 25.2+ (MCP), Python 3.10+, an OpenAI API key
